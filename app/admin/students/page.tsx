@@ -12,18 +12,26 @@ function buildErrorRedirect(message: string) {
 export default async function AdminStudentsPage({
   searchParams,
 }: {
-  searchParams?: { error?: string };
+  searchParams?: { error?: string; school?: string };
 }) {
   const supabase = createClient();
   const errorMessage = searchParams?.error;
+  const selectedSchoolId = searchParams?.school ?? "";
+
+  // Build student query — optionally filtered by school
+  let studentQuery = supabase
+    .from("students")
+    .select("id, unique_student_id, full_name, email, school_id, schools(name)")
+    .order("created_at", { ascending: false });
+
+  if (selectedSchoolId) {
+    studentQuery = studentQuery.eq("school_id", selectedSchoolId);
+  }
 
   const [{ data: schools, error: schoolsError }, { data: students, error: studentsError }] =
     await Promise.all([
       supabase.from("schools").select("id, name").order("name"),
-      supabase
-        .from("students")
-        .select("id, unique_student_id, full_name, email, school_id, schools(name)")
-        .order("created_at", { ascending: false }),
+      studentQuery,
     ]);
 
   if (schoolsError || studentsError) {
@@ -36,6 +44,8 @@ export default async function AdminStudentsPage({
       </main>
     );
   }
+
+  const selectedSchoolName = schools?.find((s) => s.id === selectedSchoolId)?.name ?? null;
 
   return (
     <main className="mx-auto max-w-6xl p-6">
@@ -129,7 +139,52 @@ export default async function AdminStudentsPage({
         </form>
       </section>
 
-      <section className="mt-6 overflow-x-auto rounded-lg border bg-card">
+      {/* School filter */}
+      <section className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <form method="get" className="flex items-center gap-2">
+            <label htmlFor="school-filter" className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+              Filter by school:
+            </label>
+            <select
+              id="school-filter"
+              name="school"
+              defaultValue={selectedSchoolId}
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+              // Auto-submits on change; the Apply button is a no-JS fallback
+              onChange="this.form.submit()"
+            >
+              <option value="">All Students</option>
+              {schools?.map((school) => (
+                <option key={school.id} value={school.id}>
+                  {school.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="submit"
+              className="h-9 rounded-md border border-border px-3 text-sm font-medium hover:bg-muted"
+            >
+              Apply
+            </button>
+            {selectedSchoolId ? (
+              <a
+                href="/admin/students"
+                className="h-9 inline-flex items-center rounded-md border border-border px-3 text-sm text-muted-foreground hover:bg-muted"
+              >
+                Clear
+              </a>
+            ) : null}
+          </form>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {selectedSchoolName
+            ? `Showing students from: ${selectedSchoolName}`
+            : `Showing all students (${students?.length ?? 0})`}
+        </p>
+      </section>
+
+      <section className="mt-3 overflow-x-auto rounded-lg border bg-card">
         <table className="min-w-full text-left text-sm">
           <thead className="border-b bg-muted/40">
             <tr>
