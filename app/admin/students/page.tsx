@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import SchoolFilterSelect from "./SchoolFilterSelect";
 
 export const dynamic = "force-dynamic";
 
@@ -141,42 +142,10 @@ export default async function AdminStudentsPage({
 
       {/* School filter */}
       <section className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
-          <form method="get" className="flex items-center gap-2">
-            <label htmlFor="school-filter" className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-              Filter by school:
-            </label>
-            <select
-              id="school-filter"
-              name="school"
-              defaultValue={selectedSchoolId}
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-              // Auto-submits on change; the Apply button is a no-JS fallback
-              onChange="this.form.submit()"
-            >
-              <option value="">All Students</option>
-              {schools?.map((school) => (
-                <option key={school.id} value={school.id}>
-                  {school.name}
-                </option>
-              ))}
-            </select>
-            <button
-              type="submit"
-              className="h-9 rounded-md border border-border px-3 text-sm font-medium hover:bg-muted"
-            >
-              Apply
-            </button>
-            {selectedSchoolId ? (
-              <a
-                href="/admin/students"
-                className="h-9 inline-flex items-center rounded-md border border-border px-3 text-sm text-muted-foreground hover:bg-muted"
-              >
-                Clear
-              </a>
-            ) : null}
-          </form>
-        </div>
+        <SchoolFilterSelect
+          schools={schools ?? []}
+          selectedSchoolId={selectedSchoolId}
+        />
         <p className="text-sm text-muted-foreground">
           {selectedSchoolName
             ? `Showing students from: ${selectedSchoolName}`
