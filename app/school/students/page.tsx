@@ -55,7 +55,10 @@ export default function SchoolStudentsPage() {
     fullName: "",
     email: "",
     temporaryPassword: "",
+    fatherName: "",
+    fatherCnic: "",
   });
+  const [addPhoto, setAddPhoto] = useState<File | null>(null);
 
   const [editStudent, setEditStudent] = useState<StudentRow | null>(null);
   const [editName, setEditName] = useState("");
@@ -137,16 +140,35 @@ export default function SchoolStudentsPage() {
     pagination.total,
   ]);
 
+  // Auto-format CNIC as user types: XXXX-XXXXXXX-X
+  const formatCnic = (raw: string) => {
+    const digits = raw.replace(/\D/g, "");
+    if (digits.length <= 4) return digits;
+    if (digits.length <= 11) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+    return `${digits.slice(0, 4)}-${digits.slice(4, 11)}-${digits.slice(11, 12)}`;
+  };
+
   const submitAddStudent = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    if (!addPhoto) {
+      pushToast("Student photo is required.", "error");
+      return;
+    }
+
     setAddSubmitting(true);
 
     try {
-      const response = await fetch("/api/school/students", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(addForm),
-      });
+      const fd = new FormData();
+      fd.append("fullName", addForm.fullName);
+      fd.append("email", addForm.email);
+      fd.append("temporaryPassword", addForm.temporaryPassword);
+      fd.append("fatherName", addForm.fatherName);
+      fd.append("fatherCnic", addForm.fatherCnic);
+      fd.append("photo", addPhoto);
+
+      // Do NOT set Content-Type manually — browser sets it with correct boundary
+      const response = await fetch("/api/school/students", { method: "POST", body: fd });
       const payload = (await response.json()) as { error?: string };
       if (response.status === 401 && (payload as any).redirectTo) {
         router.replace((payload as any).redirectTo);
@@ -155,7 +177,8 @@ export default function SchoolStudentsPage() {
       if (!response.ok) throw new Error(payload.error ?? "Failed to add student.");
 
       setAddOpen(false);
-      setAddForm({ fullName: "", email: "", temporaryPassword: "" });
+      setAddForm({ fullName: "", email: "", temporaryPassword: "", fatherName: "", fatherCnic: "" });
+      setAddPhoto(null);
       pushToast("Student added successfully", "success");
       await fetchStudents(1, query);
       setPagination((prev) => ({ ...prev, page: 1 }));
@@ -367,50 +390,89 @@ export default function SchoolStudentsPage() {
 
       {addOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="w-full max-w-md rounded-lg border bg-white p-5 shadow-lg">
+          <div className="w-full max-w-lg rounded-lg border bg-white p-5 shadow-lg">
             <h3 className="text-lg font-semibold">Add Student</h3>
             <form onSubmit={submitAddStudent} className="mt-4 space-y-3">
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Full Name</label>
-                <input
-                  required
-                  value={addForm.fullName}
-                  onChange={(event) => setAddForm((prev) => ({ ...prev, fullName: event.target.value }))}
-                  className="h-10 w-full rounded-md border border-input px-3 text-sm"
-                  placeholder="Enter full name"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Email</label>
-                <input
-                  required
-                  type="email"
-                  value={addForm.email}
-                  onChange={(event) => setAddForm((prev) => ({ ...prev, email: event.target.value }))}
-                  className="h-10 w-full rounded-md border border-input px-3 text-sm"
-                  placeholder="student@email.com"
-                />
-                <p className="text-xs text-muted-foreground">
-                  This will be used as the student&apos;s login email.
-                </p>
-              </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Temporary Password</label>
-                <input
-                  required
-                  minLength={8}
-                  value={addForm.temporaryPassword}
-                  onChange={(event) =>
-                    setAddForm((prev) => ({ ...prev, temporaryPassword: event.target.value }))
-                  }
-                  className="h-10 w-full rounded-md border border-input px-3 text-sm"
-                  placeholder="Minimum 8 characters"
-                />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Full Name <span className="text-destructive">*</span></label>
+                  <input
+                    required
+                    value={addForm.fullName}
+                    onChange={(event) => setAddForm((prev) => ({ ...prev, fullName: event.target.value }))}
+                    className="h-10 w-full rounded-md border border-input px-3 text-sm"
+                    placeholder="Student full name"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Email <span className="text-destructive">*</span></label>
+                  <input
+                    required
+                    type="email"
+                    value={addForm.email}
+                    onChange={(event) => setAddForm((prev) => ({ ...prev, email: event.target.value }))}
+                    className="h-10 w-full rounded-md border border-input px-3 text-sm"
+                    placeholder="student@email.com"
+                  />
+                  <p className="text-xs text-muted-foreground">Used as the student&apos;s login email.</p>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Temporary Password <span className="text-destructive">*</span></label>
+                  <input
+                    required
+                    minLength={8}
+                    value={addForm.temporaryPassword}
+                    onChange={(event) =>
+                      setAddForm((prev) => ({ ...prev, temporaryPassword: event.target.value }))
+                    }
+                    className="h-10 w-full rounded-md border border-input px-3 text-sm"
+                    placeholder="Min 8 characters"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Father&apos;s Name <span className="text-destructive">*</span></label>
+                  <input
+                    required
+                    value={addForm.fatherName}
+                    onChange={(event) => setAddForm((prev) => ({ ...prev, fatherName: event.target.value }))}
+                    className="h-10 w-full rounded-md border border-input px-3 text-sm"
+                    placeholder="Father's full name"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Father&apos;s CNIC <span className="text-destructive">*</span></label>
+                  <input
+                    required
+                    value={addForm.fatherCnic}
+                    onChange={(event) =>
+                      setAddForm((prev) => ({ ...prev, fatherCnic: formatCnic(event.target.value) }))
+                    }
+                    maxLength={14}
+                    className="h-10 w-full rounded-md border border-input px-3 text-sm font-mono"
+                    placeholder="0000-0000000-0"
+                  />
+                  <p className="text-xs text-muted-foreground">Format: 0000-0000000-0</p>
+                </div>
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="text-sm font-medium">Student Photo <span className="text-destructive">*</span></label>
+                  <input
+                    required
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => setAddPhoto(event.target.files?.[0] ?? null)}
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-primary/10 file:px-3 file:py-1 file:text-xs file:font-medium file:text-primary"
+                  />
+                  <p className="text-xs text-muted-foreground">JPG, PNG or WEBP · Max 5 MB</p>
+                </div>
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setAddOpen(false)}
+                  onClick={() => {
+                    setAddOpen(false);
+                    setAddForm({ fullName: "", email: "", temporaryPassword: "", fatherName: "", fatherCnic: "" });
+                    setAddPhoto(null);
+                  }}
                   className="h-9 rounded-md border border-border px-3 text-sm"
                 >
                   Cancel

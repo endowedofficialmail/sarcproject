@@ -41,6 +41,18 @@ const passwordSchema = z
 
 const uuidSchema = z.string().uuid("Invalid UUID format.");
 
+const fatherNameSchema = z
+  .string()
+  .trim()
+  .min(1, "Father's name is required.")
+  .max(100, "Father's name must be at most 100 characters.");
+
+// Pakistani CNIC format: 0000-0000000-0
+const cnicSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-\d{7}-\d$/, "CNIC must be in format: 0000-0000000-0");
+
 const shortTextSearchSchema = z
   .string()
   .trim()
@@ -73,6 +85,8 @@ export const adminCreateStudentSchema = z.object({
   email: emailSchema,
   school_id: uuidSchema,
   temporary_password: passwordSchema,
+  father_name: fatherNameSchema,
+  father_cnic: cnicSchema,
 });
 
 export const adminStudentIdParamsSchema = z.object({
@@ -89,6 +103,8 @@ export const schoolCreateStudentSchema = z.object({
   fullName: fullNameSchema,
   email: emailSchema,
   temporaryPassword: passwordSchema,
+  fatherName: fatherNameSchema,
+  fatherCnic: cnicSchema,
 });
 
 export const schoolStudentIdParamsSchema = z.object({

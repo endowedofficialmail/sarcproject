@@ -49,10 +49,15 @@ export default async function AdminStudentsPage({
 
       <section className="mt-6 rounded-lg border bg-card p-4">
         <h2 className="text-lg font-medium">Add Student</h2>
-        <form action="/api/admin/students" method="post" className="mt-4 grid gap-3 md:grid-cols-2">
+        <form
+          action="/api/admin/students"
+          method="post"
+          encType="multipart/form-data"
+          className="mt-4 grid gap-3 md:grid-cols-2"
+        >
           <input
             name="full_name"
-            placeholder="Full name"
+            placeholder="Student full name"
             required
             className="h-10 rounded-md border border-input bg-background px-3 text-sm"
           />
@@ -81,11 +86,38 @@ export default async function AdminStudentsPage({
           <input
             name="temporary_password"
             type="password"
-            placeholder="Temporary password"
+            placeholder="Temporary password (min 8 chars)"
             required
             minLength={8}
             className="h-10 rounded-md border border-input bg-background px-3 text-sm"
           />
+          <input
+            name="father_name"
+            placeholder="Father's full name"
+            required
+            className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+          />
+          <input
+            name="father_cnic"
+            placeholder="Father's CNIC e.g. 1234-1234567-8"
+            required
+            pattern="\d{4}-\d{7}-\d"
+            title="CNIC format: 0000-0000000-0"
+            className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+          />
+          <div className="space-y-1 md:col-span-2">
+            <label className="text-sm font-medium text-muted-foreground">
+              Student Photo <span className="text-destructive">*</span>
+            </label>
+            <input
+              name="photo"
+              type="file"
+              accept="image/*"
+              required
+              className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-primary/10 file:px-3 file:py-1 file:text-xs file:font-medium file:text-primary"
+            />
+            <p className="text-xs text-muted-foreground">JPG, PNG or WEBP · Max 5 MB</p>
+          </div>
           <div className="md:col-span-2">
             <button
               type="submit"
